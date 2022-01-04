@@ -14,7 +14,8 @@ import soundfile as sf
 import librosa
 
 import torch
-from transformers import Wav2Vec2ForCTC, AutoModelForCTC
+#from transformers import Wav2Vec2ForCTC, AutoModelForCTC
+from transformers import Wav2Vec2ForCTC, HubertForCTC
 from transformers import Wav2Vec2Processor, Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor
 from datasets import Dataset, concatenate_datasets, load_dataset, load_metric
 from datasets import ClassLabel
@@ -30,7 +31,7 @@ import asr4l2_utils as ut
 
 class Evaluater():
     """The pipeline for testing one or more models on the specified corpus.
-        Copora: ARC, LS    
+        Copora: ARC, LS
     """
     def __init__(self):
         self.args = None
@@ -46,6 +47,7 @@ class Evaluater():
         assert args.CORPUS in {"ARC", "LS"}
 
         self.args = args
+
         self.processor = Wav2Vec2Processor.from_pretrained(
                             self.args.PROCESSOR_PATH,
                             disable_tqdm=True
@@ -62,14 +64,14 @@ class Evaluater():
               ("dev", dev), ("test", test), ("test_unseen", test_unseen)
               ]
         elif args.CORPUS == "LS":
-            dev_clean, dev_other, test_clean, test_other = ut.load_LibriSpeech()
+            dev_clean, dev_other, test_clean, test_other = ut.load_LibriSpeech(args.SPLIT_PATH)
             self.test_sets = [
-              ("dev_clean", dev_clean), ("dev_other", dev_other), 
+              ("dev_clean", dev_clean), ("dev_other", dev_other),
               ("test_clean", test_clean), ("test_other", test_other)
               ]
 
         # Decoder
-        if args.LM_PATH: 
+        if args.LM_PATH:
             vocab_dict = self.processor.tokenizer.get_vocab()
             sorted_dict = {k: v for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])}
 #           kenlm_model = kenlm.Model(args.LM_PATH)
@@ -78,7 +80,7 @@ class Evaluater():
             self.decoder = build_ctcdecoder(
                                       list(sorted_dict.keys()),
                                       args.LM_PATH,  #kenlm_model,
-                                      unigram_list, 
+                                      unigram_list,
             )
 
 
@@ -89,8 +91,13 @@ class Evaluater():
             torch.cuda.empty_cache()
 
             # Load model
-            if self.args.LM_PATH:
-                cur_model = AutoModelForCTC.from_pretrained(m_path)
+#            if self.args.LM_PATH:
+#                cur_model = AutoModelForCTC.from_pretrained(m_path)
+#                cur_model = Wav2Vec2ForCTC.from_pretrained(m_path)
+            m_path_components = m_path.split("/")
+            developer, model_name = m_path_components[0], m_path_components[1]
+            if developer == "facebook" and model_name.startswith("hubert"):
+                cur_model = HubertForCTC.from_pretrained(m_path)
             else:
                 cur_model = Wav2Vec2ForCTC.from_pretrained(m_path)
             cur_model.freeze_feature_extractor()
@@ -111,19 +118,24 @@ class Evaluater():
             else:
                 if self.args.CORPUS == "ARC":
                     if self.decoder:
-                        wer, sentIDs, preds, refs = self._test_ARC_withLM(cur_model, ds)  # with LM
+#                        wer, sentIDs, preds, refs = self._test_ARC_withLM(cur_model, ds)  # with LM
+                        wer, IDs, preds, refs = self._test_ARC_withLM(cur_model, ds)  # with LM
                     else:
-                        wer, sentIDs, preds, refs = self._test_ARC(cur_model, ds)  # without LM
+#                        wer, sentIDs, preds, refs = self._test_ARC(cur_model, ds)  # without LM
+                        wer, IDs, preds, refs = self._test_ARC(cur_model, ds)  # without LM
                 elif self.args.CORPUS == "LS":
                     if self.decoder:
-                        wer, sentIDs, preds, refs = self._test_LS_withLM(cur_model, ds)  # with LM
+#                        wer, sentIDs, preds, refs = self._test_LS_withLM(cur_model, ds)  # with LM
+                        wer, IDs, preds, refs = self._test_LS_withLM(cur_model, ds)  # with LM
                     else:
-                        wer, sentIDs, preds, refs = self._test_LS(cur_model, ds)  # without LM
-                self.write_predictions(e_name, split, sentIDs, preds, refs)
+#                        wer, sentIDs, preds, refs = self._test_LS(cur_model, ds)  # without LM
+                        wer, IDs, preds, refs = self._test_LS(cur_model, ds)  # without LM
+#                self.write_predictions(e_name, split, sentIDs, preds, refs)
+                self.write_predictions(e_name, split, IDs, preds, refs)
                 scores.append(wer)
 
         return scores
-        
+
 
     def write_scoreboard(self, scoreboard):
 
@@ -166,12 +178,11 @@ class Evaluater():
 
 
     def _test_LS(self, cur_model, ds):
-        """Returns "id" instead of "sentID"."""
 
         def map_to_result(batch):
             cur_model.to("cuda")
             input_values = self.processor(
-                batch["speech"], 
+                batch["speech"],
                 sampling_rate=batch["sampling_rate"],
                 return_tensors="pt"
                 ).input_values.to("cuda")
@@ -182,61 +193,56 @@ class Evaluater():
             batch["pred_str"] = self.processor.batch_decode(pred_ids)[0]  #.lower()  ## lowercase the prediction
             return batch
 
-        removed_cols = ["speaker_id", "chapter_id"]  #, "id"]
-        ds = ds.remove_columns(removed_cols)
         results = ds.map(map_to_result)
 
         wer = self.wer_metric.compute(
-#            predictions=results["pred_str"], references=results["sentence"]
-            predictions=results["pred_str"], references=results["text"]
+            predictions=results["pred_str"], references=results["sentence"]
             )
         wer = round(wer, 4)
 
-        return wer, results["id"], results["pred_str"], results["text"]
+        return wer, results["id"], results["pred_str"], results["sentence"]
+
 
     def _test_LS_withLM(self, cur_model, ds):
-        """The ds (dataset) needs to have fields "speech", "sampling_rate", "text" """ 
 
         def map_to_result(batch):
             cur_model.to("cuda")
             input_values = self.processor(
-                batch["speech"], 
+                batch["speech"],
                 sampling_rate=batch["sampling_rate"],
                 return_tensors="pt"
                 ).input_values.to("cuda")
 
             with torch.no_grad():
-                logits = cur_model(input_values).logits.cpu().numpy()[0]
+                logits = cur_model(input_values).logits.cpu().detach().numpy()[0]  # pyctcdecoder supports CPU only
 #            batch["pred_str"] = self.decoder.batch_decode(logits)[0]
             batch["pred_str"] = self.decoder.decode(logits)
             return batch
-        
-    #    ut.print_("inside of _test_ARC", df_split.column_names)  
+
         results = ds.map(map_to_result)
 
         # https://huggingface.co/facebook/wav2vec2-large-960h-lv60-self
     #    results = df_split.map(_map_to_pred, batched=True, batch_size=16, remove_columns=["speech"])
 
-    #    wer_metric = load_metric("wer")
         wer = self.wer_metric.compute(
-            predictions=results["pred_str"], references=results["text"]
+            predictions=results["pred_str"], references=results["sentence"]
         )
         wer = round(wer, 4)
 
-        return wer, results["id"], results["pred_str"], results["text"]
+        return wer, results["id"], results["pred_str"], results["sentence"]
 
 
     def _test_ARC(self, cur_model, ds):
-        """The ds (dataset) needs to have fields "speech", "sampling_rate", 
-        "sentence" """ 
+        """The ds (dataset) needs to have fields "speech", "sampling_rate",
+        "sentence"."""
 
         def map_to_result(batch):
-            """For "sampling_rate", 16k is hard-coded because L1-ARC doesn't have 
+            """For "sampling_rate", 16k is hard-coded because L1-ARC doesn't have
             this column."""
 
             cur_model.to("cuda")
             input_values = self.processor(
-                batch["speech"], 
+                batch["speech"],
                 sampling_rate=16_000,  # batch["sampling_rate"], <- see the signature for the reason
                 return_tensors="pt"
                 ).input_values.to("cuda")
@@ -246,59 +252,65 @@ class Evaluater():
             pred_ids = torch.argmax(logits, dim=-1)
             batch["pred_str"] = self.processor.batch_decode(pred_ids)[0]  #.lower()  ## lowercase the prediction
             return batch
-        
-    #    ut.print_("inside of _test_ARC", df_split.column_names)  
+
+    #    ut.print_("inside of _test_ARC", df_split.column_names)
         results = ds.map(map_to_result)
 
         # https://huggingface.co/facebook/wav2vec2-large-960h-lv60-self
     #    results = df_split.map(_map_to_pred, batched=True, batch_size=16, remove_columns=["speech"])
 
-    #    wer_metric = load_metric("wer")
         wer = self.wer_metric.compute(
             predictions=results["pred_str"], references=results["sentence"]
         )
         wer = round(wer, 4)
 
-        return wer, results["sentence_id"], results["pred_str"], results["sentence"]
+        # Create identifiers
+        id_list = [speakerID + "-" + sentID for speakerID, sentID in zip(results["speaker_id"], results["sentence_id"])]
+
+#        return wer, results["sentence_id"], results["pred_str"], results["sentence"]
+        return wer, id_list, results["pred_str"], results["sentence"]
+
 
     def _test_ARC_withLM(self, cur_model, ds):
-        """The ds (dataset) needs to have fields "speech", "sampling_rate", "sentence" """ 
+        """The ds (dataset) needs to have fields "speech", "sampling_rate", "sentence" """
 
         def map_to_result(batch):
-            """For "sampling_rate", 16k is hard-coded because L1-ARC doesn't have 
+            """For "sampling_rate", 16k is hard-coded because L1-ARC doesn't have
             this column."""
 
             cur_model.to("cuda")
             input_values = self.processor(
-                batch["speech"], 
+                batch["speech"],
                 sampling_rate=16_000,  # batch["sampling_rate"], <- see the signature for the reason
                 return_tensors="pt"
                 ).input_values.to("cuda")
 
             with torch.no_grad():
-                logits = cur_model(input_values).logits.cpu().numpy()[0]
+                logits = cur_model(input_values).logits.cpu().detach().numpy()[0]    # pyctcdecoder supports CPU only
 #            batch["pred_str"] = self.decoder.batch_decode(logits)[0]
             batch["pred_str"] = self.decoder.decode(logits)
             return batch
-        
-    #    ut.print_("inside of _test_ARC", df_split.column_names)  
+
+    #    ut.print_("inside of _test_ARC", df_split.column_names)
         results = ds.map(map_to_result)
 
         # https://huggingface.co/facebook/wav2vec2-large-960h-lv60-self
     #    results = df_split.map(_map_to_pred, batched=True, batch_size=16, remove_columns=["speech"])
 
-    #    wer_metric = load_metric("wer")
         wer = self.wer_metric.compute(
             predictions=results["pred_str"], references=results["sentence"]
         )
         wer = round(wer, 4)
 
-        return wer, results["sentence_id"], results["pred_str"], results["sentence"]
+        # Create identifiers
+        id_list = [speakerID + "-" + sentID for speakerID, sentID in zip(results["speaker_id"], results["sentence_id"])]
 
+#        return wer, results["sentence_id"], results["pred_str"], results["sentence"], results["speaker_id"]
+        return wer, id_list, results["pred_str"], results["sentence"]
 
-    def write_predictions(self, e_name, split, sentIDs, predictions, references):
-        """Save predictions in a tab-separated format. 
-        Each line consists of sentID, pred, ref, separated by a tab."""
+    def write_predictions(self, e_name, split, IDs, predictions, references):
+        """Save predictions in a tab-separated format.
+        Each line consists of ID, pred, ref, separated by a tab."""
 
         if not os.path.exists(self.args.SAVE_PATH):
             os.mkdir(self.args.SAVE_PATH)
@@ -307,61 +319,6 @@ class Evaluater():
             self.args.SAVE_PATH, f"pred-{e_name}-{split}.tsv"
             )
         with open(filepath, "w", encoding="utf-8") as f:
-            for i, pred, ref in zip(sentIDs, predictions, references):
+            for i, pred, ref in zip(IDs, predictions, references):
                 f.write(i + "\t" + pred + "\t" + ref + "\n")
 
-"""
-    def write_predictions_LS(self, e_name, split, predictions, references):
-        #Save predictions in a tab-separated format. 
-        #Each line consists of pred, ref, separated by a tab (no sentID).
-
-        if not os.path.exists(self.args.SAVE_PATH):
-            os.mkdir(self.args.SAVE_PATH)
-
-        filepath = os.path.join(
-            self.args.SAVE_PATH, f"pred-{e_name}-{split}.tsv"
-            )
-        with open(filepath, "w", encoding="utf-8") as f:
-            for pred, ref in zip(predictions, references):
-                f.write(pred + "\t" + ref + "\n")
-"""
-
-def test_ARC(cur_model, processor, ds):
-    """The ds (dataset) needs to have fields "speech", "sampling_rate", 
-    "sentence".
-
-    Args:
-        cur_model
-        processor -- needs to be explicitly passed in as this function is 
-                        also used by train.py
-        ds -- dataset object
-    """ 
-
-    def map_to_result(batch):
-        """For "sampling_rate", 16k is hard-coded because L1-ARC doesn't have 
-        this column."""
-
-        cur_model.to("cuda")
-        input_values = processor(
-            batch["speech"], 
-            sampling_rate=16_000,  # batch["sampling_rate"], <- hardcoded b/c L1-ARC doesn't have this field.
-            return_tensors="pt"
-            ).input_values.to("cuda")
-
-        with torch.no_grad():
-            logits = cur_model(input_values).logits
-        pred_ids = torch.argmax(logits, dim=-1)
-        batch["pred_str"] = processor.batch_decode(pred_ids)[0]  #.lower()  ## lowercase the prediction
-        return batch
-     
-    results = ds.map(map_to_result)
-    # https://huggingface.co/facebook/wav2vec2-large-960h-lv60-self
-#    results = df_split.map(_map_to_pred, batched=True, batch_size=16, remove_columns=["speech"])
-
-    wer_metric = load_metric("wer")
-    wer = wer_metric.compute(
-        predictions=results["pred_str"], references=results["sentence"]
-    )
-    wer = round(wer, 4)
-
-    return wer, results["sentence_id"], results["pred_str"], results["sentence"]

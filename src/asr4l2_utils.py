@@ -116,43 +116,26 @@ class DataCollatorCTCWithPadding:
 
 # ------ DATA LOADER --------
 
-def load_LibriSpeech():
+def load_LibriSpeech(data_path):
 
-    def _convert_ds_file_to_array(batch):
-        """
-        Read in a dataset object and convert the audio file to an array.
-        """
-        speech_array, sampling_rate = sf.read(batch["file"])
-        batch["speech"] = speech_array
-        batch["sampling_rate"] = sampling_rate
-#        batch["sentence"] = batch["text"].lower()  ## optional
-#        batch["text"] = batch["text"]  #.lower()  ## optional
-        return batch
+    dev_clean = Dataset.load_from_disk(os.path.join(data_path, "dev-clean"))
+    dev_other = Dataset.load_from_disk(os.path.join(data_path, "dev-other"))
+    test_clean = Dataset.load_from_disk(os.path.join(data_path, "test-clean"))
+    test_other = Dataset.load_from_disk(os.path.join(data_path, "test-other"))
 
-    dev_clean = load_dataset("librispeech_asr", "clean", split="validation")
-    dev_other = load_dataset("librispeech_asr", "other", split="validation")
-    test_clean = load_dataset("librispeech_asr", "clean", split="test")
-    test_other = load_dataset("librispeech_asr", "other", split="test")
-
-    dev_clean = dev_clean.map(_convert_ds_file_to_array, num_proc=4)
-    dev_other = dev_other.map(_convert_ds_file_to_array, num_proc=4)
-    test_clean = test_clean.map(_convert_ds_file_to_array, num_proc=4)
-    test_other = test_other.map(_convert_ds_file_to_array, num_proc=4)
-    
-#    return {"dev_clean": dev_clean, "dev_other": dev_other, "test_clean": test_clean, "test_other": test_other}
     return dev_clean, dev_other, test_clean, test_other
 
 
 def load_ARCTIC(split_path, purposes=["train", "dev", "test"], L1="all", \
       removed_ids=[]):
-    """Given a list of removed_ids, load the corresponsing train, dev and test 
-    set where test set has two types: `test small` only contains speakers in 
+    """Given a list of removed_ids, load the corresponsing train, dev and test
+    set where test set has two types: `test small` only contains speakers in
     removed_ids while `test big` contains all speakers of L1 type.
 
     Args:
-        L1 (str) -- L1 type of speakers. Default: "all", means load all speakers 
+        L1 (str) -- L1 type of speakers. Default: "all", means load all speakers
                     except those to be removed
-        removed_ids (list) -- A list of speakers to be removed. Default: [], 
+        removed_ids (list) -- A list of speakers to be removed. Default: [],
                     means nothing to be removed and no small test set
     """
     train_set, dev_set, test_set, test_unseen_set = [], [], [], []
@@ -182,16 +165,16 @@ def load_ARCTIC(split_path, purposes=["train", "dev", "test"], L1="all", \
 
     # Create dataset objects
     if "train" in purposes:
-        print_(f"train loading... {[p.split('/')[-2]for p in train_set]}")
+        print_(f"train loading... {[p.split('/')[-2] for p in train_set]}")
         train = concatenate_datasets(list(map(Dataset.load_from_disk, train_set)))
     if "dev" in purposes:
-        print_(f"dev loading... {[p.split('/')[-2]for p in dev_set]}")
+        print_(f"dev loading... {[p.split('/')[-2] for p in dev_set]}")
         dev = concatenate_datasets(list(map(Dataset.load_from_disk, dev_set)))
     if "test" in purposes:
-        print_(f"test loading... {[p.split('/')[-2]for p in test_set]}")
+        print_(f"test loading... {[p.split('/')[-2] for p in test_set]}")
         test = concatenate_datasets(list(map(Dataset.load_from_disk, test_set)))
         if len(test_unseen_set):
-            print_(f"test_unseen loading... {[p.split('/')[-2]for p in test_unseen_set]}")
+            print_(f"test_unseen loading... {[p.split('/')[-2] for p in test_unseen_set]}")
             test_unseen = concatenate_datasets(
                 list(map(Dataset.load_from_disk, test_unseen_set))
                 )
@@ -203,7 +186,8 @@ def load_ARCTIC(split_path, purposes=["train", "dev", "test"], L1="all", \
     print_(f"train {len(train)} dev {len(dev)} test {len(test)} test_unseen {len(test_unseen)}")
 
     # Remove columns that are not necessary
-    removed_cols = ['L1', 'gender', 'path', 'speaker_id']
+#    removed_cols = ['L1', 'gender', 'path', 'speaker_id']
+    removed_cols = ['path']
     if len(train):
         train = train.remove_columns(removed_cols+['sentence_id'])
     if len(dev):
@@ -212,9 +196,6 @@ def load_ARCTIC(split_path, purposes=["train", "dev", "test"], L1="all", \
         test = test.remove_columns(removed_cols)
     if len(test_unseen):
         test_unseen = test_unseen.remove_columns(removed_cols)
-        
+
 #    return {"train": train, "dev": dev, "test": test, "test_unseen": test_unseen}
     return train, dev, test, test_unseen
-
-
-
