@@ -5,8 +5,8 @@
 #SBATCH --mail-type=END
 #SBATCH --nodes=1
 #SBATCH --mem=64G
-#SBATCH --time=30:00:00
-#SBATCH --job-name=eva_v2
+#SBATCH --time=3:00:00
+#SBATCH --job-name=evaluate_demo
 #SBATCH --output=out_%x.out
 #SBATCH --error=err_%x.err
 
@@ -14,32 +14,24 @@ module load python/3.8
 module load scipy-stack
 module load gcc arrow
 module load cuda cudnn
-source ~/asr4l2/bin/activate
+source ~/scratch/asr4l2/bin/activate
 
 pwd
 
-python evaluate_pipeline.py --PROCESSOR_PATH facebook/wav2vec2-large-960h-lv60-self --MODEL_PATHS facebook/wav2vec2-large-960h-lv60-self /home/rosalin3/projects/rrg-mageed/asr4l2/baseline2_EN/baseline2_0613_finetuning/baseline2_0613/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd1_0602/l1-agnostic_dep_sd1_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd2_0602/l1-agnostic_dep_sd2_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd3_0602/l1-agnostic_dep_sd3_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd1_0808/vi-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd2_0808/vi-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd3_0808/vi-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd1_0808/zh-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd2_0808/zh-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd3_0808/zh-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd1_0808/ar-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd2_0808/ar-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd3_0808/ar-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd1_0808/es-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd2_0808/es-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd3_0808/es-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd1_0808/ko-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd2_0808/ko-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd3_0808/ko-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd1_0808/hi-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd2_0808/hi-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd3_0808/hi-specific_dep_sd3_0808/best_checkpoint --EXPERIMENT_NAMES Baseline_I Baseline_II_v2_B2 v2_M1_sd1 v2_M1_sd2 v2_M1_sd3 v2_M4VI_sd1 v2_M4VI_sd2 v2_M4VI_sd3 v2_M4ZH_sd1 v2_M4ZH_sd2 v2_M4ZH_sd3 v2_M4AR_sd1 v2_M4AR_sd2 v2_M4AR_sd3 v2_M4ES_sd1 v2_M4ES_sd2 v2_M4ES_sd3 v2_M4KO_sd1 v2_M4KO_sd2 v2_M4KO_sd3 v2_M4HI_sd1 v2_M4HI_sd2 v2_M4HI_sd3 --SAVE_PATH ./eva_v2_LS --CORPUS LS
+echo -e '\nL2ARC without LM'
 
-python evaluate_pipeline.py --PROCESSOR_PATH facebook/wav2vec2-large-960h-lv60-self --SPLIT_PATH ../../../data/l1arc_splits_v5a --L1 EN --MODEL_PATHS facebook/wav2vec2-large-960h-lv60-self /home/rosalin3/projects/rrg-mageed/asr4l2/baseline2_EN/baseline2_0613_finetuning/baseline2_0613/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd1_0602/l1-agnostic_dep_sd1_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd2_0602/l1-agnostic_dep_sd2_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd3_0602/l1-agnostic_dep_sd3_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd1_0808/vi-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd2_0808/vi-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd3_0808/vi-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd1_0808/zh-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd2_0808/zh-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd3_0808/zh-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd1_0808/ar-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd2_0808/ar-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd3_0808/ar-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd1_0808/es-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd2_0808/es-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd3_0808/es-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd1_0808/ko-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd2_0808/ko-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd3_0808/ko-specific_dep_sd3_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd1_0808/hi-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd2_0808/hi-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd3_0808/hi-specific_dep_sd3_0808/best_checkpoint --EXPERIMENT_NAMES Baseline_I Baseline_II_v2_B2 v2_M1_sd1 v2_M1_sd2 v2_M1_sd3 v2_M4VI_sd1 v2_M4VI_sd2 v2_M4VI_sd3 v2_M4ZH_sd1 v2_M4ZH_sd2 v2_M4ZH_sd3 v2_M4AR_sd1 v2_M4AR_sd2 v2_M4AR_sd3 v2_M4ES_sd1 v2_M4ES_sd2 v2_M4ES_sd3 v2_M4KO_sd1 v2_M4KO_sd2 v2_M4KO_sd3 v2_M4HI_sd1 v2_M4HI_sd2 v2_M4HI_sd3 --SAVE_PATH ./eva_v2-v5a_ARC --CORPUS ARC
+python evaluate_pipeline.py --PROCESSOR_PATH processor_path --SPLIT_PATH path_to_l2arc --L1 all --MODEL_PATHS ckpt_path1 ckpt_path2 --EXPERIMENT_NAMES label1 label2 --SAVE_PATH path_to_save_preds --CORPUS ARC
 
-python evaluate_pipeline.py --PROCESSOR_PATH facebook/wav2vec2-large-960h-lv60-self --SPLIT_PATH ../../../data/l1arc_splits_v5b --L1 EN --MODEL_PATHS facebook/wav2vec2-large-960h-lv60-self /home/rosalin3/projects/rrg-mageed/asr4l2/baseline2_EN/baseline2_0613_finetuning/baseline2_0613/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd1_0602/l1-agnostic_dep_sd1_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd2_0602/l1-agnostic_dep_sd2_0602/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_agno/l1-agnostic_dep_sd3_0602/l1-agnostic_dep_sd3_0602/best_checkpoint 
+echo -e '\nL2ARC with LM'
 
+python evaluate_pipeline.py --PROCESSOR_PATH processor_path --SPLIT_PATH path_to_l2arc --L1 all --MODEL_PATHS ckpt_path1 ckpt_path2 --EXPERIMENT_NAMES label1 label2 --SAVE_PATH path_to_save_preds --CORPUS ARC --LM_PATH arpa_path --VOCAB_PATH vocab_path
 
-/home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd1_0808/vi-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd2_0808/vi-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/vi-spec_dep_sd3_0808/vi-specific_dep_sd3_0808/best_checkpoint 
+echo -e '\nL1ARC with LM'
 
+python evaluate_pipeline.py --PROCESSOR_PATH processor_path --SPLIT_PATH path_to_l1arc --L1 EN --MODEL_PATHS ckpt_path1 ckpt_path2 --EXPERIMENT_NAMES label1 label2 --SAVE_PATH path_to_save_preds --CORPUS ARC --LM_PATH arpa_path --VOCAB_PATH vocab_path
 
-/home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd1_0808/zh-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd2_0808/zh-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/zh-spec_dep_sd3_0808/zh-specific_dep_sd3_0808/best_checkpoint 
+echo -e '\nLibriSpeech with LM'
 
-
-/home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd1_0808/ar-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd2_0808/ar-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ar-spec_dep_sd3_0808/ar-specific_dep_sd3_0808/best_checkpoint 
-
-
-/home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd1_0808/es-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd2_0808/es-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/es-spec_dep_sd3_0808/es-specific_dep_sd3_0808/best_checkpoint 
-
-/home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd1_0808/ko-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd2_0808/ko-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/ko-spec_dep_sd3_0808/ko-specific_dep_sd3_0808/best_checkpoint 
-
-/home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd1_0808/hi-specific_dep_sd1_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd2_0808/hi-specific_dep_sd2_0808/best_checkpoint /home/rosalin3/projects/rrg-mageed/asr4l2/dep_spec/hi-spec_dep_sd3_0808/hi-specific_dep_sd3_0808/best_checkpoint 
-
---EXPERIMENT_NAMES Baseline_I Baseline_II_v2_B2 v2_M1_sd1 v2_M1_sd2 v2_M1_sd3 v2_M4VI_sd1 v2_M4VI_sd2 v2_M4VI_sd3 v2_M4ZH_sd1 v2_M4ZH_sd2 v2_M4ZH_sd3 v2_M4AR_sd1 v2_M4AR_sd2 v2_M4AR_sd3 v2_M4ES_sd1 v2_M4ES_sd2 v2_M4ES_sd3 v2_M4KO_sd1 v2_M4KO_sd2 v2_M4KO_sd3 v2_M4HI_sd1 v2_M4HI_sd2 v2_M4HI_sd3 --SAVE_PATH ./eva_v2-v5b_ARC --CORPUS ARC
+python evaluate_pipeline.py --PROCESSOR_PATH processor_path --SPLIT_PATH path_to_librispeech --MODEL_PATHS ckpt_path1 ckpt_path2 --EXPERIMENT_NAMES label1 label2 --SAVE_PATH path_to_save_preds --CORPUS LS --LM_PATH arpa_path --VOCAB_PATH vocab_path
 
 echo 'Done'

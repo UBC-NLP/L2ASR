@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --mem=64G
 #SBATCH --time=15:00:00
-#SBATCH --job-name=v5b_M4HI_sd3
+#SBATCH --job-name=train_demo
 #SBATCH --output=out_%x.out
 #SBATCH --error=err_%x.err
 
@@ -17,5 +17,7 @@ module load cuda cudnn
 source ~/asr4l2/bin/activate
 
 pwd
-python /home/rosalin3/scratch/w2v2_project/src/train_pipeline.py --PRETRAINED_MODEL facebook/wav2vec2-large-960h-lv60-self --PROCESSOR_PATH facebook/wav2vec2-large-960h-lv60-self --SPLIT_PATH /home/rosalin3/scratch/w2v2_project/data/l2arc_splits_v5b --L1 HI --SAVE_PATH . --SEED 123 --CONFIG 10
+
+python train_pipeline.py --PRETRAINED_MODEL ckpt_path --PROCESSOR_PATH processor_path --SPLIT_PATH split_path --L1 all --SAVE_PATH path_to_save_best_ckpt --SEED seed --CONFIG hyperparam_config_no
+
 echo 'Done'
