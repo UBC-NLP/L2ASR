@@ -25,11 +25,11 @@ from pyctcdecode import build_ctcdecoder
 
 # custom script
 import sys
-sys.path.append('/content/drive/MyDrive/w2v2_project/src')  # Colab
-sys.path.append('/home/rosalin3/scratch/w2v2_project/src')  # Compute Canada
+#sys.path.append('/content/drive/MyDrive/w2v2_project/src')  # Colab
+sys.path.append('/home/prsull/scratch/l2asr/src')  # Compute Canada
 import asr4l2_utils as ut
 
-class Evaluater():
+class Evaluator():
     """The pipeline for testing one or more models on the specified corpus.
         Copora: ARC, LS
     """
@@ -60,15 +60,28 @@ class Evaluater():
                 args.SPLIT_PATH, purposes=["dev", "test"], L1=args.L1,
                 removed_ids=args.REMOVED_IDS
                 )
-            self.test_sets = [
-              ("dev", dev), ("test", test), ("test_unseen", test_unseen)
-              ]
+            if self.args.DEV_ONLY:
+                self.test_sets = [
+                    ("dev", dev), ("test", []), ("test_unseen", [])
+                ]
+            else:
+                self.test_sets = [
+                    ("dev", dev), ("test", test), ("test_unseen", test_unseen)
+                ]
+
+        
         elif args.CORPUS == "LS":
             dev_clean, dev_other, test_clean, test_other = ut.load_LibriSpeech(args.SPLIT_PATH)
-            self.test_sets = [
-              ("dev_clean", dev_clean), ("dev_other", dev_other),
-              ("test_clean", test_clean), ("test_other", test_other)
-              ]
+            if self.args.DEV_ONLY:
+                self.test_sets = [
+                    ("dev_clean", dev_clean), ("dev_other", dev_other),
+                    ("test_clean", []), ("test_other", [])
+                ]
+            else:    
+                self.test_sets = [
+                    ("dev_clean", dev_clean), ("dev_other", dev_other),
+                    ("test_clean", test_clean), ("test_other", test_other)
+                ]
 
         # Decoder
         if args.LM_PATH:
@@ -78,9 +91,11 @@ class Evaluater():
             with open(args.VOCAB_PATH) as f:
                 unigram_list = [t for t in f.read().strip().split("\n")]
             self.decoder = build_ctcdecoder(
-                                      list(sorted_dict.keys()),
-                                      args.LM_PATH,  #kenlm_model,
-                                      unigram_list,
+                                      labels=list(sorted_dict.keys()),
+                                      kenlm_model_path=args.LM_PATH,  #kenlm_model,
+                                      unigrams=unigram_list,
+                                      alpha=self.args.ALPHA,
+                                      beta=self.args.BETA,                
             )
 
 
@@ -216,7 +231,7 @@ class Evaluater():
             with torch.no_grad():
                 logits = cur_model(input_values).logits.cpu().detach().numpy()[0]  # pyctcdecoder supports CPU only
 #            batch["pred_str"] = self.decoder.batch_decode(logits)[0]
-            batch["pred_str"] = self.decoder.decode(logits)
+            batch["pred_str"] = self.decoder.decode(logits,beam_width=self.args.BEAM)
             return batch
 
         results = ds.map(map_to_result)
@@ -288,7 +303,7 @@ class Evaluater():
             with torch.no_grad():
                 logits = cur_model(input_values).logits.cpu().detach().numpy()[0]    # pyctcdecoder supports CPU only
 #            batch["pred_str"] = self.decoder.batch_decode(logits)[0]
-            batch["pred_str"] = self.decoder.decode(logits)
+            batch["pred_str"] = self.decoder.decode(logits,beam_width=self.args.BEAM)
             return batch
 
     #    ut.print_("inside of _test_ARC", df_split.column_names)

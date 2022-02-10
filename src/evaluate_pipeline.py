@@ -1,15 +1,7 @@
 import pyarrow
 import argparse
-#import pandas as pd
-#import numpy as np
-#import random
-#import re
-#import json
 import os
-#from typing import Any, Dict, List, Optional, Union
-#from tqdm.notebook import tqdm
-#import json
-#from collections import Counter
+from typing import Any, Dict, List, Optional, Union
 
 #import soundfile as sf
 #import librosa
@@ -26,8 +18,8 @@ from transformers import Wav2Vec2ForCTC
 
 # custom script
 import sys
-sys.path.append('/content/drive/MyDrive/w2v2_project/src')  # Colab
-sys.path.append('/home/rosalin3/scratch/w2v2_project/src')  # Compute Canada
+#sys.path.append('/content/drive/MyDrive/w2v2_project/src')  # Colab
+sys.path.append('/home/prsull/scratch/l2asr/src')  # Compute Canada
 import asr4l2_utils as ut
 import evaluate as ev
 
@@ -35,7 +27,7 @@ import evaluate as ev
 def main(args):
     "The pipeline for testing one or more models."
 
-    evaluator = ev.Evaluater()
+    evaluator = ev.Evaluator()
     evaluator.setup(args)
     evaluator.start()
 
@@ -91,6 +83,22 @@ if __name__ == "__main__":
     parser.add_argument(
         "--VOCAB_PATH", required=False, default=None, 
         help="Path to unigram_list from OpenSLR"
+    )
+    parser.add_argument(
+        "--ALPHA", required=False, type=float, default=0.5,
+        help="ALPHA value for pyctcdecode"
+    )
+    parser.add_argument(
+        "--BETA", required=False, type=float, default=1.5,
+        help="BETA value for pyctcdecode"
+    )
+    parser.add_argument(
+        "--BEAM", required=False, type=int, default=100,
+        help="BEAM value for pyctcdecode"
+    )
+    parser.add_argument(
+        "--DEV_ONLY", required=False, type=bool, default=False,
+        help="For doing hyperparameter tuning"
     )
     args = parser.parse_args()
     main(args)
